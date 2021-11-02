@@ -4,19 +4,9 @@ import data
 import argparse
 from model import *
 
-# EMBEDDING_DIM = 32
-HIDDEN_SIZE = 64
+
 BATCH_SIZE = 128
 MAXLEN = 100
-SEQ_USER_MAXLEN = 50
-
-best_auc = 0.0
-best_auc_print = 0.0
-best_loss_print = 0.0
-best_accuracy_print = 0.0
-best_f1_print = 0.0
-best_itr_print = 0
-best_iter_print = 0
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
@@ -58,7 +48,13 @@ def validate(model, train_loader, val_loader):
 
 def train(model_type='Net',
           learning_rate=1e-2,
-          epochs=2):
+          epochs=2,
+          batch_size=128):
+
+    # train, val划分
+    train_loader = torch.utils.data.DataLoader(data.cifar2, batch_size=batch_size, shuffle=False)
+    val_loader = torch.utils.data.DataLoader(data.cifar2_val, batch_size=batch_size, shuffle=False)
+
     if model_type == 'Net':
         model = Net()
     elif model_type == 'NetWidth':
@@ -89,10 +85,10 @@ def train(model_type='Net',
         optimizer,
         model,
         loss_fn,
-        data.train_loader,
+        train_loader,
     )
 
-    validate(model, data.train_loader, data.val_loader)
+    validate(model, train_loader, val_loader)
 
 
 if __name__ == '__main__':
@@ -100,11 +96,13 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--model', default='Net')
     parser.add_argument('-lr', '--learning_rate', type=float, default=0.01, choices=[0.01, 0.005, 0.003])
     parser.add_argument('-e', '--epoch', type=int, default=2, choices=[1, 2, 3, 4, 5, 10, 20, 50, 100])
+    parser.add_argument('-bs', '--batch_size', type=int, default=128, choices=[32, 64, 128, 256, 512])
 
     args = parser.parse_args()
 
     print('model_name : %s' % args.model)
     print('learning_rate : %f' % args.learning_rate)
     print('epoch : %d' % args.epoch)
+    print('batch_size : %d' % args.batch_size)
 
-    train(args.model, args.learning_rate, args.epoch)
+    train(args.model, args.learning_rate, args.epoch, args.batch_size)

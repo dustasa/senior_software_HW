@@ -341,5 +341,7 @@ def get_weights(bit_variant):
     response.raise_for_status()
     return np.load(io.BytesIO(response.content))
 
+# VGG
+
 
 

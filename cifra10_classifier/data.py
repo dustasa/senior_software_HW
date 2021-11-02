@@ -39,6 +39,3 @@ cifar2_val = [(img, label_map[label])
               for img, label in tensor_cifar10_normalize_val
               if label in [0, 2]]
 
-# 8.4.1 Measuring accuracy
-train_loader = torch.utils.data.DataLoader(cifar2, batch_size=64, shuffle=False)
-val_loader = torch.utils.data.DataLoader(cifar2_val, batch_size=64, shuffle=False)
