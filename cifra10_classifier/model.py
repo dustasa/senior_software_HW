@@ -24,6 +24,7 @@ from collections import OrderedDict
 import requests
 import io
 import numpy as np
+import torchvision.models as models
 
 
 # 使用torch.nn.functional实现更简洁的定义网络的方法
@@ -341,7 +342,29 @@ def get_weights(bit_variant):
     response.raise_for_status()
     return np.load(io.BytesIO(response.content))
 
-# VGG
 
+# VGG-16
+class VGG16(nn.Module):
+    def __init__(self, num_classes):  # num_classes，此处为 二分类值为2
+        super().__init__()
+        self.num_classes = num_classes
 
+        net = models.vgg16(pretrained=True)  # 从预训练模型加载VGG16网络参数
 
+        net.classifier = nn.Sequential()  # 将分类层置空，下面将改变我们的分类层
+        self.features = net  # 保留VGG16的特征层
+        self.classifier = nn.Sequential(  # 定义自己的分类层
+            nn.Linear(512 * 7 * 7, 256),  # 512 * 7 * 7不能改变 ，由VGG16网络决定的，第二个参数为神经元个数可以微调
+            nn.ReLU(True),
+            nn.Dropout(0.5),
+            nn.Linear(256, 128),
+            nn.ReLU(True),
+            nn.Dropout(0.5),
+            nn.Linear(128, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x

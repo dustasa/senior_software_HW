@@ -52,7 +52,7 @@ def train(model_type='Net',
           batch_size=128):
 
     # train, val划分
-    train_loader = torch.utils.data.DataLoader(data.cifar2, batch_size=batch_size, shuffle=False)
+    train_loader = torch.utils.data.DataLoader(data.cifar2, batch_size=batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(data.cifar2_val, batch_size=batch_size, shuffle=False)
 
     if model_type == 'Net':
@@ -71,6 +71,8 @@ def train(model_type='Net',
         weights_cifar10 = get_weights('BiT-M-R50x1-CIFAR10')
         model = ResNetV2(ResNetV2.BLOCK_UNITS['r50'], width_factor=1, head_size=10)
         model.load_from(weights_cifar10)
+    elif model_type == 'VGG16':
+        model = VGG16(2)
     else:
         print("Invalid model_type : %s", model_type)
         return
@@ -94,8 +96,8 @@ def train(model_type='Net',
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="program description")
     parser.add_argument('-m', '--model', default='Net')
-    parser.add_argument('-lr', '--learning_rate', type=float, default=0.01, choices=[0.01, 0.005, 0.003])
-    parser.add_argument('-e', '--epoch', type=int, default=2, choices=[1, 2, 3, 4, 5, 10, 20, 50, 100])
+    parser.add_argument('-lr', '--learning_rate', type=float, default=0.01, choices=[0.1, 0.01, 0.005, 0.003, 1e-4])
+    parser.add_argument('-e', '--epoch', type=int, default=2, choices=[1, 2, 3, 4, 5, 10, 20, 30, 50, 100])
     parser.add_argument('-bs', '--batch_size', type=int, default=128, choices=[32, 64, 128, 256, 512])
 
     args = parser.parse_args()
