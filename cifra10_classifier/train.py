@@ -71,13 +71,17 @@ def train(model_type='Net',
         model = NetRes()
     elif model_type == 'NetResDeep':
         model = NetResDeep()
+    elif model_type == 'BigTransfer':
+        weights_cifar10 = get_weights('BiT-M-R50x1-CIFAR10')
+        model = ResNetV2(ResNetV2.BLOCK_UNITS['r50'], width_factor=1, head_size=10)
+        model.load_from(weights_cifar10)
     else:
         print("Invalid model_type : %s", model_type)
         return
     sys.stdout.flush()
 
     model = model.to(device)
-    optimizer = optim.SGD(model.parameters(), learning_rate)
+    optimizer = optim.SGD(model.parameters(), learning_rate, momentum=0.9)
     loss_fn = nn.CrossEntropyLoss()
 
     training_loop(
@@ -94,8 +98,8 @@ def train(model_type='Net',
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="program description")
     parser.add_argument('-m', '--model', default='Net')
-    parser.add_argument('-lr', '--learning_rate', type=float, default=0.01, choices=[0.01, 0.005])
-    parser.add_argument('-e', '--epoch', type=int, default=2, choices=[1, 2, 3, 4, 5, 10, 20])
+    parser.add_argument('-lr', '--learning_rate', type=float, default=0.01, choices=[0.01, 0.005, 0.003])
+    parser.add_argument('-e', '--epoch', type=int, default=2, choices=[1, 2, 3, 4, 5, 10, 20, 50, 100])
 
     args = parser.parse_args()
 
