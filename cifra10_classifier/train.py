@@ -4,29 +4,43 @@ import data
 import argparse
 from model import *
 
-
-BATCH_SIZE = 128
-MAXLEN = 100
+log = False
 
 device = (torch.device('cuda') if torch.cuda.is_available()
           else torch.device('cpu'))
 print(f"Training on device {device}.")
 
 
-def training_loop(n_epochs, optimizer, model, loss_fn, train_loader):
-    for epoch in range(1, n_epochs + 1):
+def training_loop(model, train_loader, num_epochs, loss_fn, lr, ld, wd, lr_period, lr_decay):
+    optimizer = optim.SGD(model.parameters(), lr, momentum=0.9, weight_decay=wd)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, lr_period, lr_decay)
+    for epoch in range(1, num_epochs + 1):
         loss_train = 0.0
         for images, labels in train_loader:
             images = images.to(device)
             labels = labels.to(device)
             outputs = model(images)
             loss = loss_fn(outputs, labels)
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            loss_train += loss.item()
+            if log:
+                print('{} optim: {}'.format(epoch, optimizer.param_groups[0]['lr']))
 
-        if epoch == 1 or epoch % 10 == 0:
+            loss_train += loss.item()
+        if ld == 1:
+            scheduler.step()
+            if log:
+                print('{} scheduler: {}'.format(epoch, scheduler.get_last_lr()))
+        elif ld == 0:
+            if log:
+                print('Not use learning rate decay')
+        else:
+            if log:
+                print('learning rate decay error')
+
+        if epoch == 1 or epoch % 5 == 0:
             print(
                 '{} Epoch {}, Training loss {}'.format(datetime.datetime.now(), epoch, loss_train / len(train_loader)))
 
@@ -48,9 +62,10 @@ def validate(model, train_loader, val_loader):
 
 def train(model_type='Net',
           learning_rate=1e-2,
+          ld=0,
+          weight_decay=1e-4,
           epochs=2,
           batch_size=128):
-
     # train, val划分
     train_loader = torch.utils.data.DataLoader(data.cifar2, batch_size=batch_size, shuffle=True)
     val_loader = torch.utils.data.DataLoader(data.cifar2_val, batch_size=batch_size, shuffle=False)
@@ -79,15 +94,19 @@ def train(model_type='Net',
     sys.stdout.flush()
 
     model = model.to(device)
-    optimizer = optim.SGD(model.parameters(), learning_rate, momentum=0.9)
+    # optimizer = optim.SGD(model.parameters(), learning_rate, momentum=0.9, weight_decay=wd)
     loss_fn = nn.CrossEntropyLoss()
 
     training_loop(
-        epochs,
-        optimizer,
-        model,
-        loss_fn,
-        train_loader,
+        model=model,
+        train_loader=train_loader,
+        num_epochs=epochs,
+        loss_fn=loss_fn,
+        lr=learning_rate,
+        ld=ld,
+        wd=weight_decay,
+        lr_period=5,
+        lr_decay=0.9,
     )
 
     validate(model, train_loader, val_loader)
@@ -99,12 +118,21 @@ if __name__ == '__main__':
     parser.add_argument('-lr', '--learning_rate', type=float, default=0.01, choices=[0.1, 0.01, 0.005, 0.003, 1e-4])
     parser.add_argument('-e', '--epoch', type=int, default=2, choices=[1, 2, 3, 4, 5, 10, 20, 30, 50, 100])
     parser.add_argument('-bs', '--batch_size', type=int, default=128, choices=[32, 64, 128, 256, 512])
+    parser.add_argument('-wd', '--weight_decay', type=float, default=1e-4, choices=[1e-3, 2e-4, 1e-4, 2e-5, 1e-5])
+    parser.add_argument('-ld', '--lr_decay', type=int, default=0)
 
     args = parser.parse_args()
 
     print('model_name : %s' % args.model)
     print('learning_rate : %f' % args.learning_rate)
+    print('weight_decay : %f' % args.weight_decay)
     print('epoch : %d' % args.epoch)
     print('batch_size : %d' % args.batch_size)
+    print('Use lr_decay,0 False, 1 True :%d' % args.lr_decay)
 
-    train(args.model, args.learning_rate, args.epoch, args.batch_size)
+    train(model_type=args.model,
+          learning_rate=args.learning_rate,
+          ld=args.lr_decay,
+          weight_decay=args.weight_decay,
+          epochs=args.epoch,
+          batch_size=args.batch_size)

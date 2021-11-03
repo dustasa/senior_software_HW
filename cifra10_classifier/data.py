@@ -13,6 +13,7 @@ cifar10_val = datasets.CIFAR10(data_path, train=False, download=True)  # 下载�
 # 引入normalize的数据初始化
 tensor_cifar10_normalize_train = datasets.CIFAR10(data_path, train=True, download=False,
                                                   transform=transforms.Compose([
+                                                      transforms.RandomHorizontalFlip(),
                                                       transforms.ToTensor(),
                                                       transforms.Normalize((0.4915, 0.4823, 0.4468),
                                                                            (0.2470, 0.2435, 0.2616))
